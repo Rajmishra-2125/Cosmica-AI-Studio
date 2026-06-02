@@ -169,7 +169,7 @@ export const FloatingNav = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-full -left-64 mt-2 w-[720px] bg-base-200 border border-base-content/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-2xl p-6 backdrop-blur-xl z-50 grid grid-cols-4 gap-6 select-none"
+                    className="absolute top-full -left-64 mt-2 w-180 bg-base-200 border border-base-content/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-2xl p-6 backdrop-blur-xl z-50 grid grid-cols-4 gap-6 select-none"
                   >
                     {/* Column 1: Organize PDF */}
                     <div className="space-y-4">
