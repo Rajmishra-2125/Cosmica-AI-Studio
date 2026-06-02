@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { CldImage } from "next-cloudinary";
+import { IconPhoto, IconSparkles, IconDownload, IconUpload } from "@tabler/icons-react";
 
 const socialFormats = {
   "Instagram Square (1:1)": { width: 1080, height: 1080, aspectRatio: "1:1", label: "Instagram Square", desc: "Perfect for feed posts" },
@@ -92,10 +93,10 @@ export default function SocialShare() {
     <div className="space-y-8 animate-fade-in">
       {/* Header Area */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-base-content">
           Social Share Studio
         </h1>
-        <p className="text-slate-400 text-sm md:text-base max-w-xl">
+        <p className="text-base-content/70 text-sm md:text-base max-w-xl">
           Upload any high-res image and automatically format it to match optimal dimensions for social media platforms.
         </p>
       </div>
@@ -103,39 +104,26 @@ export default function SocialShare() {
       {!uploadedImage ? (
         /* Upload Panel */
         <div className="max-w-2xl mx-auto">
-          <div className="card bg-slate-900/40 border border-slate-800/80 backdrop-blur-md rounded-2xl p-8 md:p-12 text-center hover:border-purple-500/35 transition-colors duration-300">
+          <div className="card bg-base-200 border border-base-content/10 backdrop-blur-md rounded-2xl p-8 md:p-12 text-center hover:border-primary/30 transition-colors duration-300">
             <div className="flex flex-col items-center justify-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-inner">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-inner">
                 {isUploading ? (
                   <span className="loading loading-spinner loading-md"></span>
                 ) : (
-                  <svg
-                    className="w-8 h-8"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
+                  <IconPhoto className="w-8 h-8" />
                 )}
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">
+                <h3 className="text-xl font-bold text-base-content">
                   {isUploading ? "Uploading Asset..." : "Upload Studio Image"}
                 </h3>
-                <p className="text-slate-400 text-sm max-w-sm">
+                <p className="text-base-content/60 text-sm max-w-sm">
                   Drag and drop your image file here, or click the button below to browse your workspace files.
                 </p>
               </div>
 
-              <label className="btn btn-primary bg-gradient-to-r from-purple-600 to-indigo-600 border-none text-white hover:from-purple-700 hover:to-indigo-700 rounded-xl px-6 py-3 cursor-pointer shadow-lg shadow-purple-600/25 mt-4">
+              <label className="btn btn-primary text-primary-content border-none rounded-xl px-6 py-3 cursor-pointer shadow-lg shadow-primary/25 mt-4 transition-transform duration-200 hover:scale-105 active:scale-95">
                 <span>Browse Files</span>
                 <input
                   type="file"
@@ -153,22 +141,9 @@ export default function SocialShare() {
         <div className="grid gap-8 lg:grid-cols-12 items-start">
           {/* Controls - Left Pane */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="card bg-slate-900/40 border border-slate-800/80 backdrop-blur-md rounded-2xl p-6 space-y-6">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <svg
-                  className="w-5 h-5 text-purple-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                  />
-                </svg>
+            <div className="card bg-base-200 border border-base-content/10 backdrop-blur-md rounded-2xl p-6 space-y-6">
+              <h2 className="text-lg font-bold text-base-content flex items-center gap-2">
+                <IconSparkles className="w-5 h-5 text-primary" />
                 Presets & Cropping
               </h2>
 
@@ -180,20 +155,20 @@ export default function SocialShare() {
                     <button
                       key={key}
                       onClick={() => setSelectedFormat(key as SocialFormat)}
-                      className={`w-full flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all duration-300 ${
+                      className={`w-full flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all duration-300 cursor-pointer ${
                         isSelected
-                          ? "bg-purple-600/10 border-purple-500 text-purple-300 shadow-inner"
-                          : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                          ? "bg-primary/10 border-primary text-primary shadow-inner"
+                          : "bg-base-100/40 border-base-content/10 text-base-content/70 hover:border-base-content/25 hover:text-base-content"
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
-                        <span className="font-bold text-sm text-slate-200">{format.label}</span>
-                        <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-md font-semibold text-slate-400">
+                        <span className="font-bold text-sm">{format.label}</span>
+                        <span className="text-[10px] bg-base-300 px-2 py-0.5 rounded-md font-semibold opacity-70">
                           {format.aspectRatio}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-500 leading-normal">{format.desc}</span>
-                      <span className="text-[10px] text-slate-600 font-mono mt-1">
+                      <span className="text-xs opacity-60 leading-normal">{format.desc}</span>
+                      <span className="text-[10px] opacity-40 font-mono mt-1">
                         Resolution: {format.width}x{format.height}px
                       </span>
                     </button>
@@ -201,17 +176,19 @@ export default function SocialShare() {
                 })}
               </div>
 
-              <div className="pt-4 border-t border-slate-800 flex flex-col gap-3">
+              <div className="pt-4 border-t border-base-content/5 flex flex-col gap-3">
                 <button
                   onClick={handleDownload}
-                  className="btn btn-primary w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 border-none text-white shadow-lg shadow-purple-600/20 rounded-xl py-3 font-semibold"
+                  className="btn btn-primary w-full text-primary-content border-none shadow-lg shadow-primary/20 rounded-xl py-3 font-semibold cursor-pointer transition-transform duration-200 hover:scale-102 active:scale-98 flex items-center justify-center gap-1.5"
                 >
+                  <IconDownload className="w-4 h-4" />
                   Download Optimized Asset
                 </button>
                 <button
                   onClick={() => setUploadedImage(null)}
-                  className="btn btn-outline w-full border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white rounded-xl py-3"
+                  className="btn btn-outline w-full border-base-content/10 text-base-content/70 hover:bg-base-300 hover:text-base-content rounded-xl py-3 cursor-pointer"
                 >
+                  <IconUpload className="w-4 h-4 inline mr-1" />
                   Upload New Image
                 </button>
               </div>
@@ -220,22 +197,22 @@ export default function SocialShare() {
 
           {/* Visualizer Preview - Right Pane */}
           <div className="lg:col-span-8">
-            <div className="card bg-slate-900/40 border border-slate-800/80 backdrop-blur-md rounded-2xl p-6 flex flex-col items-center justify-center min-h-[500px]">
+            <div className="card bg-base-200 border border-base-content/10 backdrop-blur-md rounded-2xl p-6 flex flex-col items-center justify-center min-h-[500px]">
               {isTransforming ? (
                 /* Glowing Transformation Loader */
                 <div className="flex flex-col items-center gap-4 text-center">
-                  <div className="w-16 h-16 rounded-full border-4 border-t-purple-500 border-purple-500/10 animate-spin"></div>
+                  <div className="w-16 h-16 rounded-full border-4 border-t-primary border-primary/10 animate-spin"></div>
                   <div className="space-y-1">
-                    <p className="font-bold text-white">Applying Dynamic Crop...</p>
-                    <p className="text-xs text-slate-500">Cloudinary AI-assisted content framing active</p>
+                    <p className="font-bold text-base-content">Applying Dynamic Crop...</p>
+                    <p className="text-xs text-base-content/50">Cloudinary AI-assisted content framing active</p>
                   </div>
                 </div>
               ) : (
                 /* Dynamic Preview Card */
                 <div className="w-full flex flex-col items-center gap-6">
-                  <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/60 shadow-inner flex items-center justify-center max-w-full overflow-hidden">
+                  <div className="bg-base-300/40 p-4 rounded-2xl border border-base-content/5 shadow-inner flex items-center justify-center max-w-full overflow-hidden">
                     <div
-                      className="relative border border-slate-800 shadow-2xl rounded-xl overflow-hidden bg-slate-900"
+                      className="relative border border-base-content/10 shadow-2xl rounded-xl overflow-hidden bg-base-100"
                       style={{
                         aspectRatio: socialFormats[selectedFormat].aspectRatio.replace(":", "/"),
                         maxHeight: "450px",
@@ -256,8 +233,8 @@ export default function SocialShare() {
                   </div>
 
                   <div className="text-center space-y-1">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Live Transformation Studio Preview</span>
-                    <p className="text-xs text-slate-400">
+                    <span className="text-xs font-semibold text-base-content/50 uppercase tracking-wider">Live Transformation Studio Preview</span>
+                    <p className="text-xs text-base-content/70">
                       Asset cropped intelligently using gravity detection. Ready for download.
                     </p>
                   </div>
