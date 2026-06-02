@@ -1,25 +1,17 @@
-import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../../../generated/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-
-const connectionString = `${process.env.DATABASE_URL}`;
-
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+import { prisma } from "../../lib/prisma";
 
 export async function GET(request: NextRequest) {
-    try{
-        const videos = await prisma.video.findMany({
-            orderBy: {  createdAt: "desc" }
-        });
+  try {
+    const videos = await prisma.video.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
-        return NextResponse.json(videos);
-    }catch (error) {
-        return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 });
-    } finally {        
-        await prisma.$disconnect();
-    }
-
-
+    return NextResponse.json(videos);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch videos" },
+      { status: 500 },
+    );
+  }
 }
