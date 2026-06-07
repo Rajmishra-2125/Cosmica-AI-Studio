@@ -27,6 +27,25 @@ export default function AIImageStudio() {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const handleDownload = (url: string, filename: string) => {
+    fetch(url)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const localUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = localUrl;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(localUrl);
+      })
+      .catch((error) => {
+        console.error("Direct download failed, opening in new tab:", error);
+        window.open(url, "_blank");
+      });
+  };
+
   // Tab 1: Background Removal
   const [bgFile, setBgFile] = useState<UploadedImage | null>(null);
   const [bgResultUrl, setBgResultUrl] = useState<string | null>(null);
@@ -427,15 +446,13 @@ export default function AIImageStudio() {
                               </div>
                             </div>
 
-                            <a
-                              href={bgResultUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-success w-full text-white flex items-center justify-center gap-1.5 rounded-xl shadow-sm"
+                            <button
+                              onClick={() => handleDownload(bgResultUrl!, "bg_removed.png")}
+                              className="btn btn-success w-full text-white flex items-center justify-center gap-1.5 rounded-xl shadow-sm cursor-pointer"
                             >
                               <IconDownload className="w-4 h-4" />
                               Download PNG (Transparent)
-                            </a>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -530,15 +547,13 @@ export default function AIImageStudio() {
                               </div>
                             </div>
 
-                            <a
-                              href={objResultUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-success w-full text-white flex items-center justify-center gap-1.5 rounded-xl shadow-sm"
+                            <button
+                              onClick={() => handleDownload(objResultUrl!, "erased.jpg")}
+                              className="btn btn-success w-full text-white flex items-center justify-center gap-1.5 rounded-xl shadow-sm cursor-pointer"
                             >
                               <IconDownload className="w-4 h-4" />
                               Download Erased Image
-                            </a>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -613,15 +628,13 @@ export default function AIImageStudio() {
                                   </p>
                                 </div>
                               </div>
-                              <a
-                                href={upscaleResultUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm"
+                              <button
+                                onClick={() => handleDownload(upscaleResultUrl!, "upscaled.jpg")}
+                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
                               >
                                 <IconDownload className="w-4 h-4" />
                                 Download Upscaled Image
-                              </a>
+                              </button>
                             </div>
 
                             <div className="border border-base-content/10 rounded-xl overflow-hidden bg-base-100 flex justify-center p-4">
@@ -857,15 +870,13 @@ export default function AIImageStudio() {
                                   Your compressed/cropped image is ready.
                                 </p>
                               </div>
-                              <a
-                                href={rcResultUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm"
+                              <button
+                                onClick={() => handleDownload(rcResultUrl!, `processed.${rcFormat}`)}
+                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
                               >
                                 <IconDownload className="w-4 h-4" />
                                 Download Image
-                              </a>
+                              </button>
                             </div>
 
                             <div className="border border-base-content/10 rounded-xl overflow-hidden bg-base-100 flex justify-center p-4">

@@ -34,6 +34,25 @@ export default function PDFSuite() {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const handleDownload = (url: string, filename: string) => {
+    fetch(url)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const localUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = localUrl;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(localUrl);
+      })
+      .catch((error) => {
+        console.error("Direct download failed, opening in new tab:", error);
+        window.open(url, "_blank");
+      });
+  };
+
   // Tab 1: Merge
   const [mergeFiles, setMergeFiles] = useState<UploadedFile[]>([]);
   const [mergedUrl, setMergedUrl] = useState<string | null>(null);
@@ -597,15 +616,13 @@ export default function PDFSuite() {
                                 Your newly compiled PDF has been delivered.
                               </p>
                             </div>
-                            <a
-                              href={mergedUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 self-start md:self-auto rounded-lg shadow-sm"
+                            <button
+                              onClick={() => handleDownload(mergedUrl!, "merged.pdf")}
+                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 self-start md:self-auto rounded-lg shadow-sm cursor-pointer"
                             >
                               <IconDownload className="w-4 h-4" />
                               Download PDF
-                            </a>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -699,15 +716,13 @@ export default function PDFSuite() {
                                 PDF has been rotated {rotateAngle} degrees clockwise.
                               </p>
                             </div>
-                            <a
-                              href={rotatedUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm"
+                            <button
+                              onClick={() => handleDownload(rotatedUrl!, "rotated.pdf")}
+                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
                             >
                               <IconDownload className="w-4 h-4" />
                               Download Rotated PDF
-                            </a>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -861,15 +876,13 @@ export default function PDFSuite() {
                                 Watermark text "{watermarkText}" has been permanently stamped onto pages.
                               </p>
                             </div>
-                            <a
-                              href={watermarkedUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm"
+                            <button
+                              onClick={() => handleDownload(watermarkedUrl!, "watermarked.pdf")}
+                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
                             >
                               <IconDownload className="w-4 h-4" />
                               Download Watermarked PDF
-                            </a>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -963,15 +976,13 @@ export default function PDFSuite() {
                                   Saved {((optimizeStats.savedBytes) / 1024).toFixed(1)} KB. Ready for download.
                                 </p>
                               </div>
-                              <a
-                                href={optimizedUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm"
+                              <button
+                                onClick={() => handleDownload(optimizedUrl!, "optimized.pdf")}
+                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
                               >
                                 <IconDownload className="w-4 h-4" />
                                 Download Optimized PDF
-                              </a>
+                              </button>
                             </div>
                           </div>
                         )}
@@ -1081,15 +1092,12 @@ export default function PDFSuite() {
                                       />
                                       <div className="absolute bottom-0 inset-x-0 p-2 bg-black/60 backdrop-blur-xs text-[10px] text-white flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <span>Page {pageObj.page}</span>
-                                        <a
-                                          href={pageObj.imageUrl}
-                                          download={`page_${pageObj.page}.jpg`}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="text-white hover:text-primary"
+                                        <button
+                                          onClick={() => handleDownload(pageObj.imageUrl, `page_${pageObj.page}.jpg`)}
+                                          className="text-white hover:text-primary cursor-pointer"
                                         >
                                           <IconDownload className="w-3.5 h-3.5" />
-                                        </a>
+                                        </button>
                                       </div>
                                     </div>
                                   ))}
@@ -1106,15 +1114,13 @@ export default function PDFSuite() {
                                     Document recompiled without pages {pagesInput}.
                                   </p>
                                 </div>
-                                <a
-                                  href={removedPagesUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm"
+                                <button
+                                  onClick={() => handleDownload(removedPagesUrl!, "recompiled.pdf")}
+                                  className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
                                 >
                                   <IconDownload className="w-4 h-4" />
                                   Download Recompiled PDF
-                                </a>
+                                </button>
                               </div>
                             )}
                           </div>
@@ -1218,15 +1224,13 @@ export default function PDFSuite() {
                                   className="max-h-[300px] object-contain"
                                 />
                               </div>
-                              <a
-                                href={convertedImageUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-outline btn-xs flex items-center gap-1 hover:bg-base-200"
+                              <button
+                                onClick={() => handleDownload(convertedImageUrl!, `page_${convertPage}.${convertFormat}`)}
+                                className="btn btn-outline btn-xs flex items-center gap-1 hover:bg-base-200 cursor-pointer"
                               >
                                 <IconDownload className="w-3 h-3" />
                                 Download Converted Image
-                              </a>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1332,15 +1336,13 @@ export default function PDFSuite() {
                                   Your sequential image PDF is ready.
                                 </p>
                               </div>
-                              <a
-                                href={createdPdfUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm"
+                              <button
+                                onClick={() => handleDownload(createdPdfUrl!, "images_compiled.pdf")}
+                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
                               >
                                 <IconDownload className="w-4 h-4" />
                                 Download Compiled PDF
-                              </a>
+                              </button>
                             </div>
                           )}
                         </div>

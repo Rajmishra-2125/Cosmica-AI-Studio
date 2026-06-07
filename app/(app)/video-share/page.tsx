@@ -138,15 +138,27 @@ export default function VideoShare() {
   };
 
   const handleDownload = useCallback((url: String, title: String) => {
-    const link = document.createElement("a");
     const urlString = url.toString();
     const titleString = title.toString();
-    link.href = urlString;
-    link.setAttribute("download", `${titleString}.mp4`);
-    link.setAttribute("target", "_blank");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    fetch(urlString)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const localUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = localUrl;
+        link.setAttribute("download", `${titleString}.mp4`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(localUrl);
+      })
+      .catch((error) => {
+        console.error("Direct download failed, opening in new tab:", error);
+        const link = document.createElement("a");
+        link.href = urlString;
+        link.setAttribute("target", "_blank");
+        link.click();
+      });
   }, []);
 
   return (
