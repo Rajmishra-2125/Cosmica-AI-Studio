@@ -163,7 +163,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Card 1: Social Share Studio */}
           <motion.div
             whileHover={{ y: -4 }}
@@ -195,7 +195,38 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Card 2: Video Compressor Hub */}
+          {/* Card 2: AI Image Studio */}
+          <motion.div
+            whileHover={{ y: -4 }}
+            className="card bg-base-200 border border-base-content/10 rounded-2xl p-6 flex flex-col justify-between shadow-xl transition-all duration-300"
+          >
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-inner">
+                <IconSparkles className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-bold text-base text-base-content">🔮 AI Image Studio</h4>
+                <p className="text-xs text-base-content/60 leading-relaxed">
+                  Leverage advanced Cloudinary AI parameters to instantly strip backgrounds, remove unwanted objects via prompt inputs, and upscale images.
+                </p>
+              </div>
+              <ul className="space-y-1 text-[10px] text-base-content/50 list-disc list-inside">
+                <li>Smart background removal engine</li>
+                <li>Generative fill object removal</li>
+                <li>AI super-resolution upscaler</li>
+              </ul>
+            </div>
+            <div className="pt-6">
+              <Link
+                href="/ai-image"
+                className="btn btn-outline btn-xs border-base-content/10 hover:bg-base-300 hover:text-base-content rounded-lg w-full text-[11px]"
+              >
+                Enter AI Image Studio
+              </Link>
+            </div>
+          </motion.div>
+
+          {/* Card 3: Video Compressor Hub */}
           <motion.div
             whileHover={{ y: -4 }}
             className="card bg-base-200 border border-base-content/10 rounded-2xl p-6 flex flex-col justify-between shadow-xl transition-all duration-300"
@@ -226,7 +257,7 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Card 3: Document PDF Suite */}
+          {/* Card 4: Document PDF Suite */}
           <motion.div
             whileHover={{ y: -4 }}
             className="card bg-base-200 border border-base-content/10 rounded-2xl p-6 flex flex-col justify-between shadow-xl transition-all duration-300"
@@ -248,13 +279,12 @@ export default function Home() {
               </ul>
             </div>
             <div className="pt-6">
-              <button
-                type="button"
-                className="btn btn-disabled btn-xs rounded-lg w-full text-[10px]"
-                disabled
+              <Link
+                href="/pdf-suite"
+                className="btn btn-outline btn-xs border-base-content/10 hover:bg-base-300 hover:text-base-content rounded-lg w-full text-[11px]"
               >
-                Hover 'PDF Suite' in Header
-              </button>
+                Enter PDF Suite
+              </Link>
             </div>
           </motion.div>
         </div>

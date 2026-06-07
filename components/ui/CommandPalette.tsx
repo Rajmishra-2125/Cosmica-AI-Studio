@@ -11,10 +11,12 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
   const [search, setSearch] = React.useState("");
 
   const commands = [
-    { id: 1, label: "Home", action: () => window.location.href = "/" },
+    { id: 1, label: "Home", action: () => window.location.href = "/home" },
     { id: 2, label: "Social Share", action: () => window.location.href = "/social-share" },
-    { id: 3, label: "Video Share", action: () => window.location.href = "/video-share" },
-    { id: 4, label: "Profile", action: () => window.location.href = "/profile" },
+    { id: 3, label: "AI Image Studio", action: () => window.location.href = "/ai-image" },
+    { id: 4, label: "Video Share", action: () => window.location.href = "/video-share" },
+    { id: 5, label: "PDF Suite", action: () => window.location.href = "/pdf-suite" },
+    { id: 6, label: "Profile", action: () => window.location.href = "/profile" },
   ];
 
   const filtered = commands.filter(cmd =>
