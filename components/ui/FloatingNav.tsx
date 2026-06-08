@@ -12,13 +12,8 @@ import {
 } from "motion/react";
 import {
   IconLogout,
-  IconFiles,
-  IconFileArrowRight,
-  IconEdit,
-  IconCpu,
 } from "@tabler/icons-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
-import { toast } from "@/app/store/Toast";
 
 export const FloatingNav = ({
   navItems,
@@ -39,7 +34,6 @@ export const FloatingNav = ({
   const [visible, setVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isPdfHovered, setIsPdfHovered] = useState(false);
 
   useMotionValueEvent(scrollY, "change", (current) => {
     if (typeof current === "number") {
@@ -71,9 +65,6 @@ export const FloatingNav = ({
     }
   }, [isHovered]);
 
-  const handlePdfAction = (toolName: string) => {
-    toast(`🚀 PDF ${toolName} backend API is operational! Frontend integrations coming soon.`, "info");
-  };
 
   return (
     <AnimatePresence mode="wait">
@@ -130,178 +121,7 @@ export const FloatingNav = ({
               </a>
             ))}
 
-            {/* Special PDF Suite Hover Mega-Dropdown */}
-            <div
-              className="relative"
-              onMouseEnter={() => setIsPdfHovered(true)}
-              onMouseLeave={() => setIsPdfHovered(false)}
-            >
-              <button
-                type="button"
-                className={cn(
-                  "relative flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-semibold tracking-tight transition-all duration-200 cursor-pointer border border-transparent",
-                  isPdfHovered
-                    ? "text-primary bg-primary/10 border-primary/10"
-                    : "text-base-content/70 hover:text-base-content hover:bg-base-content/5"
-                )}
-              >
-                <span>PDF Suite</span>
-                <svg
-                  className={cn(
-                    "w-3 h-3 transition-transform duration-200 shrink-0",
-                    isPdfHovered ? "rotate-180 text-primary" : "opacity-60"
-                  )}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
 
-              {/* Mega Dropdown Menu */}
-              <AnimatePresence>
-                {isPdfHovered && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-full -left-64 mt-2 w-180 bg-base-200 border border-base-content/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-2xl p-6 backdrop-blur-xl z-50 grid grid-cols-4 gap-6 select-none"
-                  >
-                    {/* Column 1: Organize PDF */}
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-extrabold tracking-wider text-base-content/50 uppercase flex items-center gap-1.5 border-b border-base-content/5 pb-2">
-                        <IconFiles className="w-3.5 h-3.5 text-indigo-400" />
-                        Organize PDF
-                      </h4>
-                      <ul className="space-y-2 text-xs">
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("Merge")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>Merge PDF</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("Extract Pages")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>Extract Pages</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("Remove Pages")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>Remove Pages</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Column 2: Convert PDF */}
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-extrabold tracking-wider text-base-content/50 uppercase flex items-center gap-1.5 border-b border-base-content/5 pb-2">
-                        <IconFileArrowRight className="w-3.5 h-3.5 text-pink-400" />
-                        Convert PDF
-                      </h4>
-                      <ul className="space-y-2 text-xs">
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("Image to PDF")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>Image to PDF</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("PDF to Image")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>PDF to Image</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Column 3: Edit PDF */}
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-extrabold tracking-wider text-base-content/50 uppercase flex items-center gap-1.5 border-b border-base-content/5 pb-2">
-                        <IconEdit className="w-3.5 h-3.5 text-purple-400" />
-                        Edit PDF
-                      </h4>
-                      <ul className="space-y-2 text-xs">
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("Rotate")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>Rotate PDF</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("Crop")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>Crop PDF</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => handlePdfAction("Watermark")}
-                            className="w-full text-left font-bold text-base-content/85 hover:text-primary hover:translate-x-1 transition-all cursor-pointer flex items-center justify-between"
-                          >
-                            <span>Watermark PDF</span>
-                            <span className="badge badge-warning scale-75 text-[8px] font-bold">API</span>
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Column 4: AI Intelligent PDF */}
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-extrabold tracking-wider text-base-content/50 uppercase flex items-center gap-1.5 border-b border-base-content/5 pb-2">
-                        <IconCpu className="w-3.5 h-3.5 text-accent" />
-                        AI PDF Intelligence
-                      </h4>
-                      <ul className="space-y-2 text-xs">
-                        <li className="text-base-content/40 flex items-center justify-between pr-2">
-                          <span>AI PDF Summarizer</span>
-                          <span className="badge badge-outline scale-75 text-[7px] font-bold border-base-content/20 opacity-50 shrink-0">Soon</span>
-                        </li>
-                        <li className="text-base-content/40 flex items-center justify-between pr-2">
-                          <span>OCR Text Reader</span>
-                          <span className="badge badge-outline scale-75 text-[7px] font-bold border-base-content/20 opacity-50 shrink-0">Soon</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
 
           {/* Right: Actions section */}

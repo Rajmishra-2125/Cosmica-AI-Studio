@@ -4,7 +4,7 @@ import React from "react";
 import {FloatingNav} from "@/components/ui/FloatingNav";
 import CommandPalette from "@/components/ui/CommandPalette";
 import {IconCameraAi, IconHome, IconVideo, IconFileText, IconSparkles} from "@tabler/icons-react";
-import type { FC } from "react";
+
 
 
 export default function Header() {
@@ -40,7 +40,7 @@ export default function Header() {
       ),
     },
     {
-      name: "AI Image Studio",
+      name: "Manage Image",
       link: "/ai-image",
       icon: (
         <IconSparkles className="h-4 w-4 text-neutral-500 dark:text-white" />
@@ -54,7 +54,7 @@ export default function Header() {
       ),
     },
     {
-      name: "PDF Suite",
+      name: "Manage PDF",
       link: "/pdf-suite",
       icon: (
         <IconFileText className="h-4 w-4 text-neutral-500 dark:text-white" />
