@@ -83,7 +83,7 @@ export const FloatingNav = ({
         }}
         className={cn(
           "w-full fixed top-4 inset-x-0 mx-auto z-5000 transition-all duration-300 px-4 md:px-0",
-          isScrolled ? "max-w-3xl" : "max-w-6xl",
+          isScrolled ? "max-w-4xl" : "max-w-6xl",
           className,
         )}
         onMouseEnter={() => setIsHovered(true)}

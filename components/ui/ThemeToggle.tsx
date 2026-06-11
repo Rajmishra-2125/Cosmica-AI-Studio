@@ -4,12 +4,8 @@ import React, { useState, useEffect } from "react";
 import { IconColorSwatch, IconCheck } from "@tabler/icons-react";
 
 const themes = [
-  { id: "black", name: "Dark Mode" },
   { id: "light", name: "Light Mode" },
-  { id: "bumblebee", name: "Bumblebee" },
-  { id: "night", name: "Midnight" },
-  { id: "business", name: "Corporate" },
-  { id: "synthwave", name: "Synthwave" },
+  { id: "dark", name: "Corporate" },
   { id: "valentine", name: "Valentine" },
 ];
 

@@ -345,7 +345,7 @@ export default function Home() {
           <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shadow-inner">
             <IconPercentage className="w-6 h-6" />
           </div>
-          <div>
+          <div className="dark:text-white text-black">
             <span className="text-[10px] text-base-content/50 block uppercase font-bold tracking-wider">Avg Savings</span>
             <span className="text-2xl font-extrabold text-accent leading-tight">
               {stats.avgRatio}%
