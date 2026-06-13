@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
       <Header />
 
       {/* Main Content Container */}
-      <main className="flex-grow max-w-4xl mx-auto px-6 pt-32 pb-20 relative z-10 w-full">
+      <main className="grow max-w-4xl mx-auto px-6 pt-32 pb-20 relative z-10 w-full">
         <div className="space-y-8">
           
           {/* Page Title & Last Updated */}
