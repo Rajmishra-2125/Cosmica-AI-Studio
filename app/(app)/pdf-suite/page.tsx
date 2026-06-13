@@ -3,29 +3,25 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  IconFileText,
   IconGitMerge,
   IconRotate,
   IconAward,
   IconDatabase,
   IconLayoutGrid,
   IconExchange,
-  IconUpload,
-  IconDownload,
-  IconTrash,
-  IconEye,
-  IconSettings,
 } from "@tabler/icons-react";
+import { toast } from "@/app/store/Toast";
+import { cn } from "@/app/lib/utils";
+
+// Subcomponents
+import PdfMerge from "./components/PdfMerge";
+import PdfRotate from "./components/PdfRotate";
+import PdfWatermark from "./components/PdfWatermark";
+import PdfOptimize from "./components/PdfOptimize";
+import PdfPages from "./components/PdfPages";
+import PdfConverter from "./components/PdfConverter";
 
 type TabType = "merge" | "rotate" | "watermark" | "optimize" | "pages" | "converter";
-
-interface UploadedFile {
-  name: string;
-  publicId: string;
-  url: string;
-  pages: number;
-  bytes: number;
-}
 
 export default function PDFSuite() {
   const [activeTab, setActiveTab] = useState<TabType>("merge");
@@ -33,6 +29,7 @@ export default function PDFSuite() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleDownload = (url: string, filename: string) => {
+    toast("Downloading PDF document...", "info");
     fetch(url)
       .then((response) => response.blob())
       .then((blob) => {
@@ -44,6 +41,7 @@ export default function PDFSuite() {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(localUrl);
+        toast("Download finished!", "success");
       })
       .catch((error) => {
         console.error("Direct download failed, opening in new tab:", error);
@@ -51,465 +49,20 @@ export default function PDFSuite() {
       });
   };
 
-  // Tab 1: Merge
-  const [mergeFiles, setMergeFiles] = useState<UploadedFile[]>([]);
-  const [mergedUrl, setMergedUrl] = useState<string | null>(null);
-  const [isProcessingMerge, setIsProcessingMerge] = useState(false);
-
-  // Tab 2: Rotate
-  const [rotateFile, setRotateFile] = useState<UploadedFile | null>(null);
-  const [rotateAngle, setRotateAngle] = useState<90 | 180 | 270>(90);
-  const [rotatedUrl, setRotatedUrl] = useState<string | null>(null);
-  const [isProcessingRotate, setIsProcessingRotate] = useState(false);
-
-  // Tab 3: Watermark
-  const [watermarkFile, setWatermarkFile] = useState<UploadedFile | null>(null);
-  const [watermarkText, setWatermarkText] = useState("CONFIDENTIAL");
-  const [watermarkOpacity, setWatermarkOpacity] = useState(30);
-  const [watermarkGravity, setWatermarkGravity] = useState<string>("center");
-  const [watermarkFontSize, setWatermarkFontSize] = useState(60);
-  const [watermarkColor, setWatermarkColor] = useState("red");
-  const [watermarkedUrl, setWatermarkedUrl] = useState<string | null>(null);
-  const [isProcessingWatermark, setIsProcessingWatermark] = useState(false);
-
-  // Tab 4: Optimize
-  const [optimizeFiles, setOptimizeFiles] = useState<UploadedFile[]>([]);
-  const [targetSizeKb, setTargetSizeKb] = useState<number>(200);
-  const [isProcessingOptimize, setIsProcessingOptimize] = useState(false);
-  const [optimizeResults, setOptimizeResults] = useState<{
-    [publicId: string]: {
-      optimizedUrl?: string;
-      error?: string;
-      stats?: {
-        originalBytes: number;
-        optimizedBytes: number;
-        savedBytes: number;
-        savedPercent: string;
-      };
-    };
-  }>({});
-
-  // Tab 5: Page Manager (Extract/Remove)
-  const [managerFile, setManagerFile] = useState<UploadedFile | null>(null);
-  const [pagesInput, setPagesInput] = useState("");
-  const [isProcessingPages, setIsProcessingPages] = useState(false);
-  const [extractedPages, setExtractedPages] = useState<{ page: number; imageUrl: string }[]>([]);
-  const [removedPagesUrl, setRemovedPagesUrl] = useState<string | null>(null);
-
-  // Tab 6: Format Converter (PDF-to-Image / Image-to-PDF)
-  const [convertFile, setConvertFile] = useState<UploadedFile | null>(null);
-  const [convertPage, setConvertPage] = useState(1);
-  const [convertFormat, setConvertFormat] = useState<"jpg" | "png" | "webp">("jpg");
-  const [convertedImageUrl, setConvertedImageUrl] = useState<string | null>(null);
-  const [isProcessingConvert, setIsProcessingConvert] = useState(false);
-
-  // Images to PDF
-  const [imageFiles, setImageFiles] = useState<{ name: string; publicId: string }[]>([]);
-  const [imageTag, setImageTag] = useState("");
-  const [createdPdfUrl, setCreatedPdfUrl] = useState<string | null>(null);
-  const [isCreatingPdfFromImages, setIsCreatingPdfFromImages] = useState(false);
-
-  const uploadSinglePdfFile = async (file: File): Promise<UploadedFile> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
-        const base64Url = reader.result as string;
-        try {
-          const response = await fetch("/api/manage-pdf/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fileUrl: base64Url }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to upload PDF to server");
-          }
-
-          const data = await response.json();
-          if (data.success) {
-            resolve({
-              name: file.name,
-              publicId: data.publicId,
-              url: data.url,
-              pages: data.pages || 1,
-              bytes: data.bytes || file.size,
-            });
-          } else {
-            reject(new Error(data.error || "Unknown upload error"));
-          }
-        } catch (err: unknown) {
-          reject(err instanceof Error ? err : new Error(String(err)));
-        }
-      };
-      reader.onerror = () => reject(new Error("File reading failed"));
-    });
-  };
-
-  // Generic File Upload Helper (converts file to base64, uploads to backend)
-  const handleFileUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    callback: (file: UploadedFile) => void
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setErrorMsg(null);
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const base64Url = reader.result as string;
-
-      try {
-        const response = await fetch("/api/manage-pdf/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileUrl: base64Url }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to upload PDF to server");
-        }
-
-        const data = await response.json();
-        if (data.success) {
-          callback({
-            name: file.name,
-            publicId: data.publicId,
-            url: data.url,
-            pages: data.pages || 1,
-            bytes: data.bytes || file.size,
-          });
-        } else {
-          throw new Error(data.error || "Unknown upload error");
-        }
-      } catch (err: unknown) {
-        console.error("PDF upload error:", err);
-        setErrorMsg(err instanceof Error ? err.message : "Failed to upload file. Make sure it is a valid PDF.");
-      } finally {
-        setIsUploading(false);
-      }
-    };
-  };
-
-  // Helper to upload images for Image to PDF conversion
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setErrorMsg(null);
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/image-upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to upload image");
-      }
-
-      const data = await response.json();
-      if (data.publicId) {
-        setImageFiles((prev) => [...prev, { name: file.name, publicId: data.publicId }]);
-        // Create an automatic tag if not set
-        if (!imageTag) {
-          setImageTag(`img2pdf_${Date.now()}`);
-        }
-      } else {
-        throw new Error("Invalid response format");
-      }
-    } catch (err: unknown) {
-      console.error("Image upload error:", err);
-      setErrorMsg(err instanceof Error ? err.message : "Failed to upload image.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // Run PDF Merge
-  const runMerge = async () => {
-    if (mergeFiles.length < 2) return;
-    setIsProcessingMerge(true);
-    setMergedUrl(null);
-    setErrorMsg(null);
-
-    try {
-      const ids = mergeFiles.map((f) => f.publicId);
-      const tag = `merge_${Date.now()}`;
-      const response = await fetch("/api/manage-pdf/merge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publicIds: ids, mergeTag: tag }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setMergedUrl(data.mergedPdfUrl);
-      } else {
-        throw new Error(data.error || "Merge failed");
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to merge PDF files.");
-    } finally {
-      setIsProcessingMerge(false);
-    }
-  };
-
-  // Run PDF Rotate
-  const runRotate = async () => {
-    if (!rotateFile) return;
-    setIsProcessingRotate(true);
-    setRotatedUrl(null);
-    setErrorMsg(null);
-
-    try {
-      const response = await fetch("/api/manage-pdf/rotate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publicId: rotateFile.publicId, angle: rotateAngle }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setRotatedUrl(data.rotatedUrl);
-      } else {
-        throw new Error(data.error || "Rotate failed");
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to rotate PDF.");
-    } finally {
-      setIsProcessingRotate(false);
-    }
-  };
-
-  // Run PDF Watermark
-  const runWatermark = async () => {
-    if (!watermarkFile) return;
-    setIsProcessingWatermark(true);
-    setWatermarkedUrl(null);
-    setErrorMsg(null);
-
-    try {
-      const response = await fetch("/api/manage-pdf/watermark", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          publicId: watermarkFile.publicId,
-          text: watermarkText,
-          opacity: watermarkOpacity,
-          gravity: watermarkGravity,
-          fontSize: watermarkFontSize,
-          color: watermarkColor,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setWatermarkedUrl(data.watermarkedUrl);
-      } else {
-        throw new Error(data.error || "Watermark failed");
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to apply watermark.");
-    } finally {
-      setIsProcessingWatermark(false);
-    }
-  };
-
-  // Run PDF Optimize
-  const runOptimize = async () => {
-    if (optimizeFiles.length === 0) return;
-    setIsProcessingOptimize(true);
-    setErrorMsg(null);
-
-    try {
-      const results: typeof optimizeResults = {};
-
-      // Process up to 3 PDFs in parallel
-      await Promise.all(
-        optimizeFiles.map(async (file) => {
-          try {
-            const response = await fetch("/api/manage-pdf/optimize", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                publicId: file.publicId,
-                targetSizeKb: targetSizeKb,
-              }),
-            });
-
-            const data = await response.json();
-            if (data.success) {
-              results[file.publicId] = {
-                optimizedUrl: data.optimizedUrl,
-                stats: data.stats,
-              };
-            } else {
-              results[file.publicId] = { error: data.error || "Compression failed" };
-            }
-          } catch (err: unknown) {
-            results[file.publicId] = { error: err instanceof Error ? err.message : "Request failed" };
-          }
-        })
-      );
-
-      setOptimizeResults(results);
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to complete compression queue.");
-    } finally {
-      setIsProcessingOptimize(false);
-    }
-  };
-
-  // Run Page Manager (Extract/Remove)
-  const runPageManager = async (action: "extract" | "remove") => {
-    if (!managerFile) return;
-    setIsProcessingPages(true);
-    setExtractedPages([]);
-    setRemovedPagesUrl(null);
-    setErrorMsg(null);
-
-    const pagesArray = pagesInput
-      .split(",")
-      .map((p) => parseInt(p.trim()))
-      .filter((p) => !isNaN(p) && p > 0);
-
-    if (pagesArray.length === 0) {
-      setErrorMsg("Please enter valid page numbers (e.g. 1,3,5)");
-      setIsProcessingPages(false);
-      return;
-    }
-
-    try {
-      if (action === "extract") {
-        const response = await fetch("/api/manage-pdf/extract-pages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ publicId: managerFile.publicId, pages: pagesArray }),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          setExtractedPages(data.extractedPages);
-        } else {
-          throw new Error(data.error || "Extraction failed");
-        }
-      } else {
-        const response = await fetch("/api/manage-pdf/remove-pages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            publicId: managerFile.publicId,
-            totalPages: managerFile.pages,
-            removePages: pagesArray,
-          }),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          setRemovedPagesUrl(data.pdfUrl);
-        } else {
-          throw new Error(data.error || "Removal failed");
-        }
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to perform page operation.");
-    } finally {
-      setIsProcessingPages(false);
-    }
-  };
-
-  // Convert PDF page to Image
-  const runConvertToImage = async () => {
-    if (!convertFile) return;
-    setIsProcessingConvert(true);
-    setConvertedImageUrl(null);
-    setErrorMsg(null);
-
-    try {
-      const response = await fetch("/api/manage-pdf/to-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          publicId: convertFile.publicId,
-          page: convertPage,
-          format: convertFormat,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setConvertedImageUrl(data.imageUrl);
-      } else {
-        throw new Error(data.error || "Conversion failed");
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to convert page to image.");
-    } finally {
-      setIsProcessingConvert(false);
-    }
-  };
-
-  // Convert Images to PDF
-  const runImagesToPdf = async () => {
-    if (imageFiles.length === 0 || !imageTag) return;
-    setIsCreatingPdfFromImages(true);
-    setCreatedPdfUrl(null);
-    setErrorMsg(null);
-
-    try {
-      const ids = imageFiles.map((img) => img.publicId);
-      const response = await fetch("/api/manage-pdf/from-images", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag: imageTag, publicIds: ids }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setCreatedPdfUrl(data.pdfUrl);
-      } else {
-        throw new Error(data.error || "Failed to compile PDF");
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to create PDF from images.");
-    } finally {
-      setIsCreatingPdfFromImages(false);
-    }
-  };
-
   const tabs: { id: TabType; label: string; icon: React.ReactNode; desc: string }[] = [
     { id: "merge", label: "Merge PDFs", icon: <IconGitMerge className="w-5 h-5" />, desc: "Combine multiple PDF files into one" },
-    { id: "rotate", label: "Rotate PDF", icon: <IconRotate className="w-5 h-5" />, desc: "Rotate all pages in a PDF document" },
-    { id: "watermark", label: "Watermark", icon: <IconAward className="w-5 h-5" />, desc: "Stamp a custom watermark overlay on PDF pages" },
-    { id: "optimize", label: "Optimize", icon: <IconDatabase className="w-5 h-5" />, desc: "Compress PDF sizes using auto-quality codecs" },
-    { id: "pages", label: "Page Manager", icon: <IconLayoutGrid className="w-5 h-5" />, desc: "Extract or remove specific pages from a PDF" },
-    { id: "converter", label: "Converter", icon: <IconExchange className="w-5 h-5" />, desc: "Convert PDF pages to images or merge images to PDF" },
+    { id: "rotate", label: "Rotate PDF", icon: <IconRotate className="w-5 h-5" />, desc: "Rotate all pages clockwise" },
+    { id: "watermark", label: "Watermark", icon: <IconAward className="w-5 h-5" />, desc: "Stamp watermark overlays" },
+    { id: "optimize", label: "Optimize Size", icon: <IconDatabase className="w-5 h-5" />, desc: "Compress document data" },
+    { id: "pages", label: "Page Manager", icon: <IconLayoutGrid className="w-5 h-5" />, desc: "Extract or remove visual sheets" },
+    { id: "converter", label: "Format Converter", icon: <IconExchange className="w-5 h-5" />, desc: "Rasterize PDF / compile images" },
   ];
 
   return (
-    <div className="space-y-10 animate-fade-in">
-      {/* Header Area */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-base-content">
-          Document PDF Suite
-        </h1>
-        <p className="text-base-content/70 text-sm md:text-base max-w-xl">
-          Upload, merge, rotate, watermark, compress, and restructure your PDF documents in real-time.
-        </p>
-      </div>
-
-      {/* Main Grid: Tabs Left (3 cols), Interface Right (9 cols) */}
-      <div className="grid gap-8 lg:grid-cols-12 items-start">
-        {/* Navigation Tabs - Left Pane */}
-        <div className="lg:col-span-3 flex flex-col gap-2 bg-base-200 p-4 border border-base-content/10 rounded-2xl">
+    <div className="space-y-6 pb-10 animate-fade-in">
+      <div className="grid gap-6 lg:grid-cols-12 items-stretch min-h-[70vh]">
+        {/* Navigation Tabs - Left Pane (lg:col-span-3) */}
+        <div className="lg:col-span-3 flex flex-col gap-2 bg-base-200 p-4 border border-base-content/10 rounded-2xl shadow-xl">
           <span className="text-[10px] font-bold uppercase tracking-wider text-base-content/40 px-3 mb-1">
             PDF Operations
           </span>
@@ -522,974 +75,107 @@ export default function PDFSuite() {
                   setActiveTab(tab.id);
                   setErrorMsg(null);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 cursor-pointer ${
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 cursor-pointer text-xs font-semibold",
                   isActive
-                    ? "bg-primary text-primary-content font-bold shadow-lg shadow-primary/20"
+                    ? "bg-primary text-primary-content shadow-lg shadow-primary/20"
                     : "text-base-content/75 hover:bg-base-300 hover:text-base-content"
-                }`}
+                )}
               >
                 {tab.icon}
-                <div className="flex flex-col">
-                  <span className="text-sm">{tab.label}</span>
-                  <span className="text-[9px] opacity-60 font-normal leading-none mt-0.5">
-                    {tab.desc}
-                  </span>
+                <div className="flex flex-col min-w-0">
+                  <span className="truncate">{tab.label}</span>
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* Workspace Operations Panel - Right Pane */}
-        <div className="lg:col-span-9">
-          <div className="card bg-base-200 border border-base-content/10 backdrop-blur-md rounded-2xl p-6 md:p-8 min-h-[500px] flex flex-col justify-between">
-            <div className="space-y-6">
-              {/* Dynamic Tab Heading */}
-              <div className="border-b border-base-content/5 pb-4">
-                <h2 className="text-xl font-bold text-base-content flex items-center gap-2">
-                  {tabs.find((t) => t.id === activeTab)?.icon}
-                  {tabs.find((t) => t.id === activeTab)?.label}
-                </h2>
-                <p className="text-xs text-base-content/55 mt-1">
-                  {tabs.find((t) => t.id === activeTab)?.desc}. Cloudinary serverless execution.
-                </p>
-              </div>
-
-              {/* Error Banner */}
-              {errorMsg && (
-                <div className="alert alert-error text-xs rounded-xl py-2 px-4 shadow-sm">
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              {/* Loader */}
-              {isUploading && (
-                <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-                  <span className="loading loading-spinner loading-lg text-primary"></span>
-                  <div className="space-y-1">
-                    <p className="font-semibold text-sm">Uploading and registering PDF with Vault...</p>
-                    <p className="text-[10px] text-base-content/50">Processing raw document stream</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab Contents */}
-              {!isUploading && (
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {/* TAB 1: MERGE */}
-                    {activeTab === "merge" && (
-                      <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold text-base-content/60">Upload PDFs to Merge</span>
-                          <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-base-content/10 rounded-xl cursor-pointer hover:border-primary/50 transition-colors bg-base-100/40">
-                            <IconUpload className="w-8 h-8 opacity-40 mb-2 text-primary" />
-                            <span className="text-xs font-bold">Choose a PDF file to add</span>
-                            <span className="text-[10px] text-base-content/40 mt-1">Upload multiple documents</span>
-                            <input
-                              type="file"
-                              accept="application/pdf"
-                              onChange={(e) =>
-                                handleFileUpload(e, (newFile) => {
-                                  setMergeFiles((prev) => [...prev, newFile]);
-                                })
-                              }
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-
-                        {mergeFiles.length > 0 && (
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold uppercase tracking-wider text-base-content/50">
-                                Merge Order list ({mergeFiles.length} files)
-                              </span>
-                              <button
-                                onClick={() => setMergeFiles([])}
-                                className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                              >
-                                Clear All
-                              </button>
-                            </div>
-
-                            <div className="space-y-2">
-                              {mergeFiles.map((file, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center justify-between p-3 rounded-xl bg-base-100 border border-base-content/5 shadow-sm"
-                                >
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
-                                      {idx + 1}
-                                    </span>
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-bold truncate max-w-xs">{file.name}</p>
-                                      <p className="text-[10px] text-base-content/40">
-                                        Pages: {file.pages} • Size: {(file.bytes / 1024).toFixed(1)} KB
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() =>
-                                      setMergeFiles((prev) => prev.filter((_, i) => i !== idx))
-                                    }
-                                    className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-error hover:bg-error/10"
-                                  >
-                                    <IconTrash className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-
-                            <button
-                              onClick={runMerge}
-                              disabled={mergeFiles.length < 2 || isProcessingMerge}
-                              className="btn btn-primary w-full text-primary-content border-none shadow-md rounded-xl py-3 cursor-pointer"
-                            >
-                              {isProcessingMerge ? (
-                                <span className="flex items-center gap-2">
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                  Merging PDF files...
-                                </span>
-                              ) : (
-                                "Combine & Generate Merged PDF"
-                              )}
-                            </button>
-                          </div>
-                        )}
-
-                        {mergedUrl && (
-                          <div className="p-4 rounded-xl bg-success/15 border border-success/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                              <p className="text-xs font-bold text-success-content">Merge Completed Successfully!</p>
-                              <p className="text-[10px] text-success-content/70">
-                                Your newly compiled PDF has been delivered.
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => handleDownload(mergedUrl!, "merged.pdf")}
-                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 self-start md:self-auto rounded-lg shadow-sm cursor-pointer"
-                            >
-                              <IconDownload className="w-4 h-4" />
-                              Download PDF
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* TAB 2: ROTATE */}
-                    {activeTab === "rotate" && (
-                      <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold text-base-content/60">Upload PDF to Rotate</span>
-                          {!rotateFile ? (
-                            <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-base-content/10 rounded-xl cursor-pointer hover:border-primary/50 transition-colors bg-base-100/40">
-                              <IconUpload className="w-8 h-8 opacity-40 mb-2 text-primary" />
-                              <span className="text-xs font-bold">Choose a PDF file</span>
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                onChange={(e) => handleFileUpload(e, setRotateFile)}
-                                className="hidden"
-                              />
-                            </label>
-                          ) : (
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-base-100 border border-base-content/5 shadow-sm">
-                              <div className="flex items-center gap-3">
-                                <IconFileText className="w-8 h-8 text-primary" />
-                                <div>
-                                  <p className="text-xs font-bold truncate max-w-sm">{rotateFile.name}</p>
-                                  <p className="text-[10px] text-base-content/40">
-                                    Pages: {rotateFile.pages} • Size: {(rotateFile.bytes / 1024).toFixed(1)} KB
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setRotateFile(null);
-                                  setRotatedUrl(null);
-                                }}
-                                className="btn btn-ghost btn-xs text-error"
-                              >
-                                Replace File
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {rotateFile && (
-                          <div className="space-y-6">
-                            <div className="space-y-2">
-                              <span className="text-xs font-semibold text-base-content/60">Select Rotation Angle</span>
-                              <div className="grid grid-cols-3 gap-3">
-                                {([90, 180, 270] as const).map((angle) => (
-                                  <button
-                                    key={angle}
-                                    type="button"
-                                    onClick={() => setRotateAngle(angle)}
-                                    className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all duration-200 cursor-pointer ${
-                                      rotateAngle === angle
-                                        ? "bg-primary/10 border-primary text-primary font-bold shadow-inner"
-                                        : "bg-base-100/40 border-base-content/10 text-base-content/75 hover:border-base-content/25"
-                                    }`}
-                                  >
-                                    <IconRotate className="w-6 h-6 mb-1" />
-                                    <span className="text-sm font-semibold">{angle}° Clockwise</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={runRotate}
-                              disabled={isProcessingRotate}
-                              className="btn btn-primary w-full text-primary-content border-none shadow-md rounded-xl py-3"
-                            >
-                              {isProcessingRotate ? (
-                                <span className="flex items-center gap-2">
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                  Rotating pages...
-                                </span>
-                              ) : (
-                                "Apply Rotation"
-                              )}
-                            </button>
-                          </div>
-                        )}
-
-                        {rotatedUrl && (
-                          <div className="p-4 rounded-xl bg-success/15 border border-success/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                              <p className="text-xs font-bold text-success-content">Rotation Completed!</p>
-                              <p className="text-[10px] text-success-content/70">
-                                PDF has been rotated {rotateAngle} degrees clockwise.
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => handleDownload(rotatedUrl!, "rotated.pdf")}
-                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
-                            >
-                              <IconDownload className="w-4 h-4" />
-                              Download Rotated PDF
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* TAB 3: WATERMARK */}
-                    {activeTab === "watermark" && (
-                      <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold text-base-content/60">Upload PDF for Watermark</span>
-                          {!watermarkFile ? (
-                            <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-base-content/10 rounded-xl cursor-pointer hover:border-primary/50 transition-colors bg-base-100/40">
-                              <IconUpload className="w-8 h-8 opacity-40 mb-2 text-primary" />
-                              <span className="text-xs font-bold">Choose a PDF file</span>
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                onChange={(e) => handleFileUpload(e, setWatermarkFile)}
-                                className="hidden"
-                              />
-                            </label>
-                          ) : (
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-base-100 border border-base-content/5 shadow-sm">
-                              <div className="flex items-center gap-3">
-                                <IconFileText className="w-8 h-8 text-primary" />
-                                <div>
-                                  <p className="text-xs font-bold truncate max-w-sm">{watermarkFile.name}</p>
-                                  <p className="text-[10px] text-base-content/40">
-                                    Pages: {watermarkFile.pages} • Size: {(watermarkFile.bytes / 1024).toFixed(1)} KB
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setWatermarkFile(null);
-                                  setWatermarkedUrl(null);
-                                }}
-                                className="btn btn-ghost btn-xs text-error"
-                              >
-                                Replace File
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {watermarkFile && (
-                          <div className="card bg-base-100 border border-base-content/10 p-5 rounded-2xl space-y-4">
-                            <h3 className="text-sm font-bold text-base-content flex items-center gap-2">
-                              <IconSettings className="w-4 h-4 text-primary" />
-                              Watermark Configuration Settings
-                            </h3>
-
-                            <div className="grid gap-4 md:grid-cols-2">
-                              {/* Text input */}
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-base-content/60">Watermark Text</label>
-                                <input
-                                  type="text"
-                                  value={watermarkText}
-                                  onChange={(e) => setWatermarkText(e.target.value)}
-                                  className="input input-bordered input-sm rounded-xl focus:border-primary focus:outline-none"
-                                />
-                              </div>
-
-                              {/* Color select */}
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-base-content/60">Watermark Color</label>
-                                <select
-                                  value={watermarkColor}
-                                  onChange={(e) => setWatermarkColor(e.target.value)}
-                                  className="select select-bordered select-sm rounded-xl focus:border-primary focus:outline-none"
-                                >
-                                  <option value="red">Red</option>
-                                  <option value="black">Black</option>
-                                  <option value="grey">Grey</option>
-                                  <option value="blue">Blue</option>
-                                  <option value="green">Green</option>
-                                </select>
-                              </div>
-
-                              {/* Font Size input */}
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-base-content/60">Font Size (px)</label>
-                                <input
-                                  type="number"
-                                  value={watermarkFontSize}
-                                  onChange={(e) => setWatermarkFontSize(parseInt(e.target.value) || 40)}
-                                  className="input input-bordered input-sm rounded-xl focus:border-primary focus:outline-none"
-                                />
-                              </div>
-
-                              {/* Gravity positioning */}
-                              <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-semibold text-base-content/60">Position (Gravity)</label>
-                                <select
-                                  value={watermarkGravity}
-                                  onChange={(e) => setWatermarkGravity(e.target.value)}
-                                  className="select select-bordered select-sm rounded-xl focus:border-primary focus:outline-none"
-                                >
-                                  <option value="center">Center</option>
-                                  <option value="north">Top (North)</option>
-                                  <option value="south">Bottom (South)</option>
-                                  <option value="east">Right (East)</option>
-                                  <option value="west">Left (West)</option>
-                                  <option value="north_east">Top Right (NE)</option>
-                                  <option value="north_west">Top Left (NW)</option>
-                                  <option value="south_east">Bottom Right (SE)</option>
-                                  <option value="south_west">Bottom Left (SW)</option>
-                                </select>
-                              </div>
-
-                              {/* Opacity slider */}
-                              <div className="flex flex-col gap-1.5 md:col-span-2">
-                                <div className="flex items-center justify-between text-xs font-semibold">
-                                  <span className="text-base-content/60">Opacity</span>
-                                  <span>{watermarkOpacity}%</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="10"
-                                  max="100"
-                                  value={watermarkOpacity}
-                                  onChange={(e) => setWatermarkOpacity(parseInt(e.target.value))}
-                                  className="range range-primary range-xs"
-                                />
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={runWatermark}
-                              disabled={isProcessingWatermark}
-                              className="btn btn-primary w-full text-primary-content border-none shadow-md rounded-xl py-3 mt-4"
-                            >
-                              {isProcessingWatermark ? (
-                                <span className="flex items-center gap-2">
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                  Embedding watermark...
-                                </span>
-                              ) : (
-                                "Apply Watermark Overlay"
-                              )}
-                            </button>
-                          </div>
-                        )}
-
-                        {watermarkedUrl && (
-                          <div className="p-4 rounded-xl bg-success/15 border border-success/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                              <p className="text-xs font-bold text-success-content">Watermark Applied!</p>
-                              <p className="text-[10px] text-success-content/70">
-                                Watermark text &quot;{watermarkText}&quot; has been permanently stamped onto pages.
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => handleDownload(watermarkedUrl!, "watermarked.pdf")}
-                              className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
-                            >
-                              <IconDownload className="w-4 h-4" />
-                              Download Watermarked PDF
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* TAB 4: OPTIMIZE */}
-                    {activeTab === "optimize" && (
-                      <div className="space-y-8 text-center max-w-2xl mx-auto py-4">
-                        {/* Title */}
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-base-content tracking-tight">
-                          Compress PDF to {targetSizeKb}kb
-                        </h2>
-
-                        {/* Dashed Dropzone */}
-                        <div className="relative">
-                          <label className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-indigo-500/40 rounded-3xl cursor-pointer hover:border-indigo-500/70 transition-all bg-base-100/40 min-h-[200px]">
-                            <span className="text-sm font-semibold text-base-content/70 mb-4">
-                            Select Or Drag &amp; Drop PDF&apos;s Here
-                            </span>
-                            <span className="btn bg-teal-700 hover:bg-teal-800 text-white font-bold px-6 py-2 border-none rounded-lg shadow-md flex items-center gap-1.5 cursor-pointer">
-                              Select PDF
-                            </span>
-                            <input
-                              type="file"
-                              accept="application/pdf"
-                              multiple
-                              onChange={async (e) => {
-                                const files = Array.from(e.target.files || []);
-                                if (files.length + optimizeFiles.length > 3) {
-                                  setErrorMsg("You can compress up to 3 PDFs at once.");
-                                  return;
-                                }
-                                setIsUploading(true);
-                                setErrorMsg(null);
-                                try {
-                                  const uploaded = await Promise.all(
-                                    files.map(file => uploadSinglePdfFile(file))
-                                  );
-                                  setOptimizeFiles((prev) => [...prev, ...uploaded]);
-                                } catch (err: unknown) {
-                                  setErrorMsg(err instanceof Error ? err.message : "Upload failed");
-                                } finally {
-                                  setIsUploading(false);
-                                }
-                              }}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-
-                        {/* Selected Files Queue */}
-                        {optimizeFiles.length > 0 && (
-                          <div className="text-left space-y-3">
-                            <span className="text-xs font-bold uppercase tracking-wider text-base-content/50">
-                              Selected PDF Files ({optimizeFiles.length}/3)
-                            </span>
-                            <div className="space-y-2">
-                              {optimizeFiles.map((file, idx) => {
-                                const result = optimizeResults[file.publicId];
-                                return (
-                                  <div
-                                    key={file.publicId}
-                                    className="flex items-center justify-between p-3.5 rounded-xl bg-base-100 border border-base-content/5 shadow-sm"
-                                  >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <IconFileText className="w-5 h-5 text-primary shrink-0" />
-                                      <div className="min-w-0">
-                                        <p className="text-xs font-bold truncate max-w-xs">{file.name}</p>
-                                        <p className="text-[10px] text-base-content/40">
-                                          Size: {(file.bytes / 1024).toFixed(1)} KB
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                      {result?.stats && (
-                                        <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-md font-semibold">
-                                          - {result.stats.savedPercent}
-                                        </span>
-                                      )}
-                                      {result?.error && (
-                                        <span className="text-[10px] bg-error/10 text-error px-2 py-0.5 rounded-md font-semibold">
-                                          Failed
-                                        </span>
-                                      )}
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setOptimizeFiles((prev) => prev.filter((_, i) => i !== idx));
-                                          setOptimizeResults((prev) => {
-                                            const copy = { ...prev };
-                                            delete copy[file.publicId];
-                                            return copy;
-                                          });
-                                        }}
-                                        className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-error hover:bg-error/10"
-                                      >
-                                        <IconTrash className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Controls: Target Size Input & Compress Button */}
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 border-t border-base-content/5">
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-semibold text-base-content/75">PDF Size:</span>
-                            <div className="flex items-center border border-indigo-500/50 rounded-lg overflow-hidden bg-base-100 shadow-sm">
-                              <input
-                                type="number"
-                                value={targetSizeKb}
-                                onChange={(e) => setTargetSizeKb(parseInt(e.target.value) || 200)}
-                                className="w-20 px-3 py-1.5 text-center text-sm font-bold text-base-content focus:outline-none bg-transparent"
-                              />
-                              <span className="bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 text-sm font-semibold border-l border-indigo-500/50">
-                                Kb
-                              </span>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={runOptimize}
-                            disabled={optimizeFiles.length === 0 || isProcessingOptimize}
-                            className="btn bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg px-6 py-2 border-none shadow-md cursor-pointer flex items-center gap-1.5"
-                          >
-                            {isProcessingOptimize ? (
-                              <>
-                                <span className="loading loading-spinner loading-xs"></span>
-                                Compressing...
-                              </>
-                            ) : (
-                              "Compress"
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Note */}
-                        <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                          Note:- You Can Compress 3 PDFs At Once
-                        </p>
-
-                        {/* Compression Results Grid */}
-                        {Object.keys(optimizeResults).length > 0 && (
-                          <div className="space-y-4 pt-6 border-t border-base-content/5 text-left">
-                            <span className="text-xs font-bold uppercase tracking-wider text-base-content/50">
-                              Compression Results
-                            </span>
-                            <div className="grid gap-4 sm:grid-cols-1">
-                              {optimizeFiles.map((file) => {
-                                const res = optimizeResults[file.publicId];
-                                if (!res) return null;
-                                return (
-                                  <div
-                                    key={file.publicId}
-                                    className="p-4 rounded-xl border border-base-content/10 bg-base-100 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm"
-                                  >
-                                    <div className="space-y-1">
-                                      <p className="text-xs font-bold truncate max-w-sm">{file.name}</p>
-                                      {res.stats ? (
-                                        <p className="text-[10px] text-base-content/60">
-                                          Original: {(res.stats.originalBytes / 1024).toFixed(1)} KB • Optimized: {(res.stats.optimizedBytes / 1024).toFixed(1)} KB • Saved: {res.stats.savedPercent}
-                                        </p>
-                                      ) : (
-                                        <p className="text-[10px] text-error font-medium">{res.error || "Failed"}</p>
-                                      )}
-                                    </div>
-                                    {res.optimizedUrl && (
-                                      <button
-                                        onClick={() => handleDownload(res.optimizedUrl!, `${file.name.replace(/\.[^/.]+$/, "")}_compressed.pdf`)}
-                                        className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer self-start md:self-auto"
-                                      >
-                                        <IconDownload className="w-4 h-4" />
-                                        Download PDF
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* TAB 5: PAGE MANAGER */}
-                    {activeTab === "pages" && (
-                      <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold text-base-content/60">Upload PDF to Manage</span>
-                          {!managerFile ? (
-                            <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-base-content/10 rounded-xl cursor-pointer hover:border-primary/50 transition-colors bg-base-100/40">
-                              <IconUpload className="w-8 h-8 opacity-40 mb-2 text-primary" />
-                              <span className="text-xs font-bold">Choose a PDF file</span>
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                onChange={(e) => handleFileUpload(e, setManagerFile)}
-                                className="hidden"
-                              />
-                            </label>
-                          ) : (
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-base-100 border border-base-content/5 shadow-sm">
-                              <div className="flex items-center gap-3">
-                                <IconFileText className="w-8 h-8 text-primary" />
-                                <div>
-                                  <p className="text-xs font-bold truncate max-w-sm">{managerFile.name}</p>
-                                  <p className="text-[10px] text-base-content/40">
-                                    Pages: {managerFile.pages} • Size: {(managerFile.bytes / 1024).toFixed(1)} KB
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  setManagerFile(null);
-                                  setPagesInput("");
-                                  setExtractedPages([]);
-                                  setRemovedPagesUrl(null);
-                                }}
-                                className="btn btn-ghost btn-xs text-error"
-                              >
-                                Replace File
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {managerFile && (
-                          <div className="card bg-base-100 border border-base-content/10 p-5 rounded-2xl space-y-4">
-                            <div className="flex flex-col gap-1.5">
-                              <div className="flex justify-between items-center text-xs font-semibold">
-                                <span className="text-base-content/60">Enter Page Numbers</span>
-                                <span className="text-[10px] opacity-50">Range: 1 to {managerFile.pages}</span>
-                              </div>
-                              <input
-                                type="text"
-                                placeholder="Comma-separated page numbers e.g. 1, 3, 5"
-                                value={pagesInput}
-                                onChange={(e) => setPagesInput(e.target.value)}
-                                className="input input-bordered input-sm rounded-xl focus:border-primary focus:outline-none"
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 pt-2">
-                              <button
-                                onClick={() => runPageManager("extract")}
-                                disabled={isProcessingPages || !pagesInput.trim()}
-                                className="btn btn-primary btn-outline rounded-xl py-3 flex items-center gap-1.5"
-                              >
-                                <IconEye className="w-4 h-4" />
-                                Extract Pages (JPG)
-                              </button>
-                              <button
-                                onClick={() => runPageManager("remove")}
-                                disabled={isProcessingPages || !pagesInput.trim()}
-                                className="btn btn-error btn-outline rounded-xl py-3 flex items-center gap-1.5"
-                              >
-                                <IconTrash className="w-4 h-4" />
-                                Delete Pages (PDF)
-                              </button>
-                            </div>
-
-                            {isProcessingPages && (
-                              <div className="flex items-center justify-center py-6 gap-2 text-xs">
-                                <span className="loading loading-spinner loading-xs text-primary"></span>
-                                <span>Running page operation...</span>
-                              </div>
-                            )}
-
-                            {/* Extracted pages results */}
-                            {extractedPages.length > 0 && (
-                              <div className="space-y-4 pt-4 border-t border-base-content/5">
-                                <span className="text-xs font-bold uppercase tracking-wider text-base-content/50">
-                                  Extracted Page Images
-                                </span>
-                                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
-                                  {extractedPages.map((pageObj, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="group relative border border-base-content/10 rounded-xl overflow-hidden bg-base-200 aspect-3/4 flex flex-col justify-between shadow-sm"
-                                    >
-                                      <img
-                                        src={pageObj.imageUrl}
-                                        alt={`Page ${pageObj.page}`}
-                                        className="w-full h-full object-contain"
-                                      />
-                                      <div className="absolute bottom-0 inset-x-0 p-2 bg-black/60 backdrop-blur-xs text-[10px] text-white flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span>Page {pageObj.page}</span>
-                                        <button
-                                          onClick={() => handleDownload(pageObj.imageUrl, `page_${pageObj.page}.jpg`)}
-                                          className="text-white hover:text-primary cursor-pointer"
-                                        >
-                                          <IconDownload className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Removed pages results */}
-                            {removedPagesUrl && (
-                              <div className="p-4 rounded-xl bg-success/15 border border-success/30 flex flex-col md:flex-row md:items-center justify-between gap-4 mt-4">
-                                <div>
-                                  <p className="text-xs font-bold text-success-content">Pages Deleted!</p>
-                                  <p className="text-[10px] text-success-content/70">
-                                    Document recompiled without pages {pagesInput}.
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => handleDownload(removedPagesUrl!, "recompiled.pdf")}
-                                  className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
-                                >
-                                  <IconDownload className="w-4 h-4" />
-                                  Download Recompiled PDF
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* TAB 6: CONVERTER */}
-                    {activeTab === "converter" && (
-                      <div className="space-y-10">
-                        {/* Area 1: PDF to Image */}
-                        <div className="space-y-4">
-                          <h3 className="text-md font-bold text-base-content flex items-center gap-2">
-                            <IconExchange className="w-5 h-5 text-primary" />
-                            PDF to Image Converter
-                          </h3>
-
-                          <div className="flex flex-col gap-2">
-                            {!convertFile ? (
-                              <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-base-content/10 rounded-xl cursor-pointer hover:border-primary/50 transition-colors bg-base-100/40">
-                                <IconUpload className="w-8 h-8 opacity-40 mb-2 text-primary" />
-                                <span className="text-xs font-bold">Choose a PDF file to convert</span>
-                                <input
-                                  type="file"
-                                  accept="application/pdf"
-                                  onChange={(e) => handleFileUpload(e, setConvertFile)}
-                                  className="hidden"
-                                />
-                              </label>
-                            ) : (
-                              <div className="space-y-4 bg-base-100 p-4 rounded-xl border border-base-content/5 shadow-sm">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <IconFileText className="w-8 h-8 text-primary" />
-                                    <div>
-                                      <p className="text-xs font-bold truncate max-w-sm">{convertFile.name}</p>
-                                      <p className="text-[10px] text-base-content/40">
-                                        Pages: {convertFile.pages} • Size: {(convertFile.bytes / 1024).toFixed(1)} KB
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      setConvertFile(null);
-                                      setConvertedImageUrl(null);
-                                    }}
-                                    className="btn btn-ghost btn-xs text-error"
-                                  >
-                                    Replace
-                                  </button>
-                                </div>
-
-                                <div className="grid gap-4 sm:grid-cols-3 pt-2">
-                                  {/* Page Number */}
-                                  <div className="flex flex-col gap-1">
-                                    <label className="text-[10px] font-semibold uppercase text-base-content/50">Page</label>
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      max={convertFile.pages}
-                                      value={convertPage}
-                                      onChange={(e) => setConvertPage(parseInt(e.target.value) || 1)}
-                                      className="input input-bordered input-sm rounded-xl focus:border-primary focus:outline-none"
-                                    />
-                                  </div>
-
-                                  {/* Format select */}
-                                  <div className="flex flex-col gap-1">
-                                    <label className="text-[10px] font-semibold uppercase text-base-content/50">Format</label>
-                                    <select
-                                      value={convertFormat}
-                                      onChange={(e) => setConvertFormat(e.target.value as "jpg" | "png" | "webp")}
-                                      className="select select-bordered select-sm rounded-xl focus:border-primary focus:outline-none"
-                                    >
-                                      <option value="jpg">JPG</option>
-                                      <option value="png">PNG</option>
-                                      <option value="webp">WEBP</option>
-                                    </select>
-                                  </div>
-
-                                  {/* Trigger */}
-                                  <button
-                                    onClick={runConvertToImage}
-                                    disabled={isProcessingConvert}
-                                    className="btn btn-primary btn-sm self-end rounded-xl py-2 cursor-pointer h-9"
-                                  >
-                                    {isProcessingConvert ? "Converting..." : "Convert Page"}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {convertedImageUrl && (
-                            <div className="p-4 bg-base-100 rounded-xl border border-base-content/5 flex flex-col items-center gap-4">
-                              <span className="text-[10px] font-semibold text-base-content/40 uppercase">Conversion Preview</span>
-                              <div className="max-h-[300px] overflow-hidden border border-base-content/10 rounded-lg shadow-sm">
-                                <img
-                                  src={convertedImageUrl}
-                                  alt="Converted PDF page"
-                                  className="max-h-[300px] object-contain"
-                                />
-                              </div>
-                              <button
-                                onClick={() => handleDownload(convertedImageUrl!, `page_${convertPage}.${convertFormat}`)}
-                                className="btn btn-outline btn-xs flex items-center gap-1 hover:bg-base-200 cursor-pointer"
-                              >
-                                <IconDownload className="w-3 h-3" />
-                                Download Converted Image
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Area 2: Images to PDF */}
-                        <div className="space-y-4 pt-6 border-t border-base-content/5">
-                          <h3 className="text-md font-bold text-base-content flex items-center gap-2">
-                            <IconExchange className="w-5 h-5 text-secondary" />
-                            Images to PDF Generator
-                          </h3>
-
-                          <div className="grid gap-4 md:grid-cols-2">
-                            {/* Upload Zone */}
-                            <div className="flex flex-col gap-2">
-                              <span className="text-xs font-semibold text-base-content/60">Upload Source Images</span>
-                              <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-base-content/10 rounded-xl cursor-pointer hover:border-primary/50 transition-colors bg-base-100/40">
-                                <IconUpload className="w-6 h-6 opacity-40 mb-2 text-secondary" />
-                                <span className="text-xs font-bold text-center">Add Image (JPG/PNG)</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleImageUpload}
-                                  className="hidden"
-                                />
-                              </label>
-                            </div>
-
-                            {/* Tag Input */}
-                            <div className="flex flex-col gap-2">
-                              <span className="text-xs font-semibold text-base-content/60">Configuration Tag</span>
-                              <input
-                                type="text"
-                                placeholder="Auto-generated tag..."
-                                value={imageTag}
-                                onChange={(e) => setImageTag(e.target.value)}
-                                className="input input-bordered w-full rounded-xl bg-base-100 border-base-content/10 text-sm focus:border-primary focus:outline-none"
-                              />
-                            </div>
-                          </div>
-
-                          {imageFiles.length > 0 && (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between pt-2">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-base-content/50">
-                                  Image Sequence ({imageFiles.length} files)
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setImageFiles([]);
-                                    setImageTag("");
-                                    setCreatedPdfUrl(null);
-                                  }}
-                                  className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                                >
-                                  Clear Sequence
-                                </button>
-                              </div>
-
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                {imageFiles.map((fileObj, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="p-3 bg-base-100 rounded-xl border border-base-content/5 relative shadow-xs flex flex-col items-center justify-center text-center"
-                                  >
-                                    <span className="w-5 h-5 rounded-full bg-secondary/15 text-secondary flex items-center justify-center text-[10px] font-bold mb-1">
-                                      {idx + 1}
-                                    </span>
-                                    <p className="text-[10px] font-bold truncate max-w-full">{fileObj.name}</p>
-                                    <button
-                                      onClick={() =>
-                                        setImageFiles((prev) => prev.filter((_, i) => i !== idx))
-                                      }
-                                      className="absolute top-1 right-1 text-base-content/30 hover:text-error transition-colors"
-                                    >
-                                      <IconTrash className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-
-                              <button
-                                onClick={runImagesToPdf}
-                                disabled={imageFiles.length === 0 || isCreatingPdfFromImages}
-                                className="btn btn-primary w-full text-primary-content border-none shadow-md rounded-xl py-3"
-                              >
-                                {isCreatingPdfFromImages ? (
-                                  <span className="flex items-center gap-2 justify-center">
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                    Compiling Images to PDF...
-                                  </span>
-                                ) : (
-                                  "Compile Images into PDF"
-                                )}
-                              </button>
-                            </div>
-                          )}
-
-                          {createdPdfUrl && (
-                            <div className="p-4 rounded-xl bg-success/15 border border-success/30 flex flex-col md:flex-row md:items-center justify-between gap-4 mt-4">
-                              <div>
-                                <p className="text-xs font-bold text-success-content">PDF Compiled Successfully!</p>
-                                <p className="text-[10px] text-success-content/70">
-                                  Your sequential image PDF is ready.
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleDownload(createdPdfUrl!, "images_compiled.pdf")}
-                                className="btn btn-success btn-sm text-white flex items-center gap-1.5 rounded-lg shadow-sm cursor-pointer"
-                              >
-                                <IconDownload className="w-4 h-4" />
-                                Download Compiled PDF
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              )}
+        {/* Workspace Operations Panel - Right Pane (lg:col-span-9) */}
+        <div className="lg:col-span-9 flex flex-col justify-between bg-base-200 border border-base-content/10 backdrop-blur-md rounded-2xl p-5 md:p-6 shadow-xl min-h-[500px]">
+          <div className="space-y-6">
+            {/* Header info */}
+            <div className="border-b border-base-content/5 pb-4">
+              <h2 className="text-lg font-bold text-base-content flex items-center gap-2">
+                {tabs.find((t) => t.id === activeTab)?.icon}
+                {tabs.find((t) => t.id === activeTab)?.label}
+              </h2>
+              <p className="text-xs text-base-content/55 mt-0.5 font-semibold">
+                {tabs.find((t) => t.id === activeTab)?.desc}. Secure serverless compilation.
+              </p>
             </div>
+
+            {/* Error Banner */}
+            {errorMsg && (
+              <div className="alert alert-error text-xs rounded-xl py-2.5 px-4 shadow-sm text-error-content bg-error/15 border border-error/20">
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-6"
+              >
+                {activeTab === "merge" && (
+                  <PdfMerge
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+                    setErrorMsg={setErrorMsg}
+                    handleDownload={handleDownload}
+                  />
+                )}
+
+                {activeTab === "rotate" && (
+                  <PdfRotate
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+                    setErrorMsg={setErrorMsg}
+                    handleDownload={handleDownload}
+                  />
+                )}
+
+                {activeTab === "watermark" && (
+                  <PdfWatermark
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+                    setErrorMsg={setErrorMsg}
+                    handleDownload={handleDownload}
+                  />
+                )}
+
+                {activeTab === "optimize" && (
+                  <PdfOptimize
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+                    setErrorMsg={setErrorMsg}
+                    handleDownload={handleDownload}
+                  />
+                )}
+
+                {activeTab === "pages" && (
+                  <PdfPages
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+                    setErrorMsg={setErrorMsg}
+                    handleDownload={handleDownload}
+                  />
+                )}
+
+                {activeTab === "converter" && (
+                  <PdfConverter
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+                    setErrorMsg={setErrorMsg}
+                    handleDownload={handleDownload}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>
